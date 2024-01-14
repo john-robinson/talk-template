@@ -1,34 +1,120 @@
 class: middle, center, title-slide
 count: false
 
-# The title of my talk
+# Video Frame Interpolation
 
-With some sub-titles
+Étude de cas
 
 <br><br>
 
-Your name<br>
-[your.name@something.com](mailto:your.name@something.com)
+John Robinson<br>
 
 ---
+## Contenu de cette presentation
+- Comprendre le problème
+- Revue de littérature
+    - *Deep bayesian video frame interpolation*
+    - *Exploring Motion Ambiguity and Alignment for High-Quality Video Frame Interpolation*
+    - *IFRNet: Intermediate Feature Refine Network for Efficient Frame Interpolation*
+    - *Uncertainty-Guided Spatial Pruning Architecture for Efficient Frame Interpolation*
+    - *Clearer Frames, Anytime: Resolving Velocity Ambiguity in Video Frame Interpolation*
+- Que retenir de ces recherches ?
+- Conclusion
+- Prochaine étape
 
+---
 class: section
-
-# Section title
-
+# Interpolation d'images
 ---
 
-# This is a slide
+## Le problème
 
-Some text goes here.
+En se basant sur une série d'images $$\mathcal{I} = \\{I_{-k}, ... , I_0, I_1, ... I_k\\}$$
 
-- or
-- here
-- as 
-- a
-- list
+Construire un modèle $\mathcal{F}$ capable de générer une image intermédiaire.
 
-.footnote[This is a footnote.]
+$$I_t = \mathcal{F}(\mathcal{I}, t), \; \; 0 < t < 1$$
+
+<!-- SCHEMA -->
+
+
+$k$ paramétrise le modèle et le training set,
+
+$$\mathcal{D} = \left\\{ \bigcup^{k}\_{l=1}I\_{i \pm l}, I\_i \right\\}^{N-k}\_{i=k}$$
+
+
+- $k = 1$, triplets
+- $k = 2$, quintuplets
+- $k = 3$, septuplets
+
+
+Le **deep learning** nous permet d'approcher ce problème de **regression**.  
+
+---
+## Regression "pure"
+
+
+Le modele $\mathcal{F}$ tente de capturer la relation directe entre l'output $I_t$ et les images adjacentes dans le dataset
+
+<!-- 
+SCHEMA -->
+
+Cette formulation offre peu de flexibilité, $t = 0.5$
+
+---
+## Optic Flow
+
+On considère ici une étape intermédiare, celle de l'**optic flow**, qui caractérise le mouvement apparent de la scène.
+
+<!-- 
+SCHEMA -->
+
+La première étape consiste en l'estimation d'un certain nombre de d'optic flows, souvent 2.
+
+$$\phi = \\{F\_{i \rightarrow t}\\}\_i^{K}$$
+où
+$$F\_{i \rightarrow t} \approx g(\mathcal{I}, t)$$
+
+
+Le modele $\mathcal{F}$ interpole donc en fonction des images et des flows.
+
+$$I_t = \mathcal{F}(\mathcal{I}, \phi)$$
+
+Cette approche permet une plus **grande flexibilité** quant a $t$. Cependant, approximer l'optic flow en ne se basant que sur les images reste **imprécis** (problème d'occlusion, etc...).
+
+
+
+---
+## Solution Actuelle, Modèle
+
+Le modele actuel execute une régression "pure" et se base sur CAIN .footnote[Channel Attention Is All You Need for Video Frame Interpolation, 2020]
+
+<!-- schema  -->
+
+
+---
+## Solution Actuelle, Challenges
+
+Difficultés avec les **paternes répétitifs** et les situations **d'ambiguïté**.
+
+<!-- Photos -->
+
+Cette solution est donc clairement perfectible.
+---
+## Métriques et Evaluation
+
+De nombreuse métriques telles que le **PSNR** et la **SSIM**
+- **P**eak **S**ignal-to-**N**oise **R**atio (dB)
+$$PSNR(I\_1, I\_2) = 10 \log\_{10} \left(\frac{MAX^2(I\_1)}{MSE(I\_1, I\_2)}\right)$$
+
+Compare la qualité de $I\_2$ par rapport a $I_1$
+
+- **S**tructural **SIM**ilarity (entre 0 et 1)
+$$SSIM(x, y) = \frac{(2 \mu\_x\mu\_y + c\_1)(2 \sigma\_{xy} + c\_2)}{(\mu\_x^2 \mu\_y^2 + c\_1)(\sigma\_x^2 \sigma\_y^2 + c\_1)}$$
+
+Compare la structure de l'image $x$ a celle de l'image $y$.
+
+Ces métriques n'expliquent pas tout les aspects de la qualité d'une image, l'analyse **qualitative** reste donc de vigueur. 
 
 ---
 
@@ -56,6 +142,18 @@ def fibonacci(n):
         return fibonacci(n-1) + fibonacci(n-2)
 ~~~
 
+---
+
+# References
+- Liste des articles
+    - *Yu, Zhiyang, & al. "Deep bayesian video frame interpolation." Oct 2022.*
+    - *Choi, Kim, & al. "Channel Attention Is All You Need for Video Frame Interpolation" 2020.*
+    - *Zhou, Li, & al. "Exploring Motion Ambiguity and Alignment for High-Quality Video Frame Interpolation" Mar 2022*
+    - *Kong, Jiang, & al. "IFRNet: Intermediate Feature Refine Network for Efficient Frame Interpolation" May 2022*
+    - *Cheng, Jiang, & al. "Uncertainty-Guided Spatial Pruning Architecture for Efficient Frame Interpolation" Oct 2023*
+    - *Zhong, Krishnan, & al. "Clearer Frames, Anytime: Resolving Velocity Ambiguity in Video Frame Interpolation" Nov 2023*
+---
+- Autres références
 ---
 
 class: end-slide, center
