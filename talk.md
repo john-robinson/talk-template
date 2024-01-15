@@ -102,7 +102,7 @@ Difficultés avec les **paternes répétitifs** et les situations **d'ambiguït�
 
 <!-- Photos -->
 
-Cette solution est donc clairement perfectible.
+Cette solution est donc perfectible.
 ---
 ## Métriques et Evaluation
 
@@ -129,14 +129,14 @@ class: section
 
 ## Revue d'articles 
 - *IFRNet: Intermediate Feature Refine Network for Efficient Frame Interpolation*
-- Deep bayesian video frame interpolation
+- Deep Bayesian Video Frame Interpolation
 - Exploring Motion Ambiguity and Alignment for High-Quality Video Frame Interpolation
 - Uncertainty-Guided Spatial Pruning Architecture for Efficient Frame Interpolation
 - Clearer Frames, Anytime: Resolving Velocity Ambiguity in Video Frame Interpolation
 ---
 
 
-## IFRNet, le modèle
+## IFRNet (Mai 2022)
 
 Cet article propose une approche **encodeur-decodeur** à plusieurs niveaux. Les images $I\_0$ et $I\_1$ sont encodée en une pyramide de features $\phi^{\\{1, ..., 4\\}}\_0$ et $\phi^{\\{1, ..., 4\\}}\_1$.
 
@@ -250,39 +250,169 @@ $$\phi\_t^{\\{1, ..., 3\\}} = \mathcal{E}(I^{GT}\_t)$$
 
 
 ---
-## IFRNet
+## IFRNet, récapitulatif
 
 <br>
 
 <p align = "center">
-    <img src="/figures/IFRNet/ifrnet2.jpg"  width="105%">
+    <img src="/figures/IFRNet/ifrnet2.jpg"  width="100%">
+</p>
+
+---
+## IFRNet, récapitulatif
+
+Quantitativement, l'article présente 3 modèles, **IFRNet small**, **IFRNet** et **IFRNet large**, tous sont plus performants que CAIN.
+
+<p align = "center">
+    <img src="/figures/IFRNet/ifrnet4.jpg"  width="100%">
+</p>
+
+---
+
+## IFRNet, récapitulatif
+
+Qualitativement, IFRNet montre de bons résultats
+
+<p align = "center">
+    <img src="/figures/IFRNet/ifrnet5.jpg"  width="100%">
 </p>
 
 
 
 ---
-## IFRNet, performances
-
-Résultats
-
-
-
-
 
 ## Revue d'articles 
 - IFRNet: Intermediate Feature Refine Network for Efficient Frame Interpolation
-- *Deep bayesian video frame interpolation*
+- *Deep Bayesian Video Frame Interpolation*
 - Exploring Motion Ambiguity and Alignment for High-Quality Video Frame Interpolation
 - Uncertainty-Guided Spatial Pruning Architecture for Efficient Frame Interpolation
 - Clearer Frames, Anytime: Resolving Velocity Ambiguity in Video Frame Interpolation
 ---
 
-## Deep Bayesian VFI
+## DBVFI (Oct 2022)
+
+L'approche suggérée est de considérer l'interpolation comme un problème de **maximisation**.
+L'image interpolée $I\_t^\*$ maximise une **distribution d'images** conditionnée par les données
+
+$$I\_t^\* = \underset{I\_t}{\text{argmax}} P(I\_t | I\_0, I\_1, F\_{0 \rightarrow t}, F\_{1 \rightarrow t})$$
+
+Ce modèle ensuite relaxé puis consolidé en considérant les possibles erreurs d'estimation de $F\_{0 \rightarrow t}$ et $F\_{1 \rightarrow t}$
+L'interpolation est alors **itérative** s'apparant à une descente de **gradient** tirant part des réseaux de neurones.
+
 ---
+
+## DBVFI, le modèle
+
+Le modèle est **relaxé**, les paires d'images et de flows $I\_0, F\_{0 \rightarrow t}$ et $I\_1, F\_{1 \rightarrow t}$ sont indépendantes.
+$$P(I\_t | I\_0, I\_1, F\_{0 \rightarrow t}, F\_{1 \rightarrow t}) = \prod\_{i \in \\{0, 1\\}} P(I\_t | I\_i, F\_{i \rightarrow t})$$
+
+Comme l'estimation des flows est basée sur un **framerate bas**, on présume donc une erreur $\Delta F\_{i \rightarrow t}$ comme étant une variable latente du modèle. En intégrant pour toute les erreurs possible, 
+
+$$P(I\_t | I\_i, F\_{i \rightarrow t}) = \int\_{\Delta F\_{i \rightarrow t}} P(I\_t | I\_i, F\_{i \rightarrow t}, \Delta F\_{i \rightarrow t}) P(\Delta F\_{i \rightarrow t} | I\_i, F\_{i \rightarrow t}) d\Delta F\_{i \rightarrow t}$$
+
+Cette intégrale est **incalculable**, on accepte alors une approximation avec $$\Delta \hat{F}\_{i \rightarrow t} = \underset{\Delta F\_{i \rightarrow t}}{\text{argmax}} P(\Delta F\_{i \rightarrow t} | I\_i, F\_{i \rightarrow t})$$
+
+$$P(I\_t | I\_i, F\_{i \rightarrow t}) \approx P(I\_t | I\_i, F\_{i \rightarrow t}, \Delta \hat{F}\_{i \rightarrow t}) P(\Delta F\_{i \rightarrow t} | I\_i, F\_{i \rightarrow t})$$
+
+---
+## DBVFI, le modèle
+
+Avec ces changements, prendre le **logarithme négatif** donne l'expression d'une loss 
+$$\mathcal{L} = -  \sum\_{i \in \\{0, 1\\}} \\left(\log P(I\_t | I\_i, F\_{i \rightarrow t} \\right)) + \log P(\Delta F\_{i \rightarrow t} | I\_i, F\_{i \rightarrow t})$$
+
+Permettant une descente de gradient sur les images et les erreurs
+
+$$I\_t^{(k+1)} = I\_t^{(k)} - \lambda\_I \frac{\partial \mathcal{L}}{\partial I\_t}$$
+$$\Delta \hat{F}\_{i \rightarrow t}^{(k+1)} = \Delta \hat{F}\_{i \rightarrow t}^{(k)} - \lambda\_F \frac{\partial \mathcal{L}}{\partial \Delta \hat{F}\_{i \rightarrow t}}$$
+
+Les modules Flow/Image Gradient estiment ces gradients.
+
+-  $\frac{\partial \mathcal{L}}{\partial I\_t}$ est formulé **explicitement** se basant sur le warping de $I\_t^{(k)}$ par le flow $F\_{i \rightarrow t} + \Delta \hat{F}\_{i \rightarrow t}^{(k)}$
+-  $\frac{\partial \mathcal{L}}{\partial \Delta \hat{F}\_{i \rightarrow t}}$ est formulé **implicitement** avec un réseau de neurones.
+
+---
+## DBVFI, le modèle
+
+Afin de réduire le nombre d'updates nécéssaire, la méthode proposée approche l'optimisation en estimant l'update à apporter avec **un réseau de neurones**
+
+$$I\_t^{(k+1)} = I\_t^{(k)} + \mathcal{G}\_I \\left( \\left\\{ \frac{\partial \mathcal{L}}{\partial I\_t}\\right\\}, I\_t^{(k)}   \\{F\_{i \rightarrow t}\\}, \\{\Delta \hat{F}\_{i \rightarrow t}\\} \\right)$$
+
+$\\{\cdot\\}$ indique l'ensemble des évaluations pour chaque image $I\_0$ et $I\_1$.
+
+$$\Delta \hat{F}\_{i \rightarrow t}^{(k + 1)} = \Delta \hat{F}\_{i \rightarrow t}^{(k)} + \mathcal{G}\_F \\left(  \frac{\partial \mathcal{L}}{\partial \Delta \hat{F}\_{i \rightarrow t}}\\, I\_i , \Delta \hat{F}\_{i \rightarrow t}^{(k)}, F\_{i \rightarrow t} \\right)$$
+
+Considérant que $\mathcal{G}\_I$ et $\mathcal{G}\_F$ partagent certains inputs, ces deux reseaux de neurones sont implémentés avec un CNN **commun** 
+
+
+---
+
+## DBVFI, l'entrainement
+Toute chose confondue, exécuter une étape d'optimisation implique l'utilisation de 2 réseaux de neurones. Entrainer ce modèle consiste à réaliser $K$ étapes d'optimisation, 
+$$I\_t^{(1)}, ..., I\_t^{(K)}$$
+Et d'optimiser les paramètres de ses réseaux en considérant la reconstruction de l'image
+$$\mathcal{L}\_r = \sum\_{k=1}^K \alpha\_k ||I\_t^{GT} - I\_t^{(k)}||_1$$
+
+Les $\alpha\_k$ sont déterminés empiricallement et **augmentent** avec les itérations
+
+
+---
+
+## DBVFI, récapitulatif
+
+Le modèle fonctionne celon ce pipeline.
+
+
+<p align = "center">
+    <img src="/figures/DBVFI/dbvfi1.jpg"  width="100%">
+</p>
+
+
+
+---
+## DBVFI, récapitulatif
+
+Le réseau de neurones englobant $\mathcal{G}\_I$ et $\mathcal{G}\_F$ a cette structure.
+
+<p align = "center">
+    <img src="/figures/DBVFI/dbvfi2.jpg"  width="100%">
+</p>
+
+
+
+---
+
+## DBVFI, récapitulatif
+
+Quantitativement, ce modèle performe mieux que de nombreux autres, y compris CAIN.
+
+
+<p align = "center">
+    <img src="/figures/DBVFI/dbvfi3.jpg"  width="100%">
+</p>
+
+
+
+---
+
+## DBVFI, récapitulatif
+
+Qualitativement, les résultats sont satisfaisants, notamment au niveaux des structures **répétitives**
+
+<p align = "center">
+    <img src="/figures/DBVFI/dbvfi4.jpg"  width="90%">
+</p>
+
+
+
+---
+
+
+
+
 
 ## Revue d'articles 
 - IFRNet: Intermediate Feature Refine Network for Efficient Frame Interpolation
-- Deep bayesian video frame interpolation
+- Deep Bayesian Video Frame Interpolation
 - *Exploring Motion Ambiguity and Alignment for High-Quality Video Frame Interpolation*
 - Uncertainty-Guided Spatial Pruning Architecture for Efficient Frame Interpolation
 - Clearer Frames, Anytime: Resolving Velocity Ambiguity in Video Frame Interpolation
