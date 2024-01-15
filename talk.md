@@ -419,7 +419,12 @@ Qualitativement, les résultats sont satisfaisants, notamment au niveaux des str
 ---
 
 
-## Exploring Motion Ambiguity and Alignment
+## Exploring Motion Ambiguity and Alignment (Mars 2022)
+
+
+
+
+
 ---
 
 ## Revue d'articles 
