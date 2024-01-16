@@ -3,7 +3,6 @@ count: false
 
 # Video Frame Interpolation
 
-Étude de cas
 
 <br><br>
 
@@ -11,9 +10,11 @@ John Robinson<br>
 
 ---
 ## Contenu de cette presentation
+
+
 - Comprendre le problème
 - Revue d'articles
-    - *Deep bayesian video frame interpolation*
+    - *Deep Bayesian Video Frame Interpolation*
     - *Exploring Motion Ambiguity and Alignment for High-Quality Video Frame Interpolation*
     - *IFRNet: Intermediate Feature Refine Network for Efficient Frame Interpolation*
     - *Uncertainty-Guided Spatial Pruning Architecture for Efficient Frame Interpolation*
@@ -372,7 +373,8 @@ Le modèle fonctionne celon ce pipeline.
 ## DBVFI, récapitulatif
 
 Le réseau de neurones englobant $\mathcal{G}\_I$ et $\mathcal{G}\_F$ a cette structure.
-
+<br>
+<br>
 <p align = "center">
     <img src="/figures/DBVFI/dbvfi2.jpg"  width="100%">
 </p>
@@ -384,8 +386,8 @@ Le réseau de neurones englobant $\mathcal{G}\_I$ et $\mathcal{G}\_F$ a cette st
 ## DBVFI, récapitulatif
 
 Quantitativement, ce modèle performe mieux que de nombreux autres, y compris CAIN.
-
-
+<br>
+<br>
 <p align = "center">
     <img src="/figures/DBVFI/dbvfi3.jpg"  width="100%">
 </p>
@@ -395,6 +397,7 @@ Quantitativement, ce modèle performe mieux que de nombreux autres, y compris CA
 ---
 
 ## DBVFI, récapitulatif
+
 
 Qualitativement, les résultats sont satisfaisants, notamment au niveaux des structures **répétitives**
 
@@ -421,26 +424,170 @@ Qualitativement, les résultats sont satisfaisants, notamment au niveaux des str
 
 ## Exploring Motion Ambiguity and Alignment (Mars 2022)
 
+L'approche proposée se base également sur une décomposition des deux images en **pyramide de features**
 
+$$\phi^{\\{0, 1, 2\\}}\_0 \text{ et } \phi^{\\{0, 1, 2\\}}\_1 $$
+
+Ces features sont ensuite concatènés et alignés à travers leurs différents niveaux. **Cross Scale Pyramid Alignment**.
+
+<p align = "center">
+    <img src="/figures/cspa/cspa1.jpg"  width="100%">
+</p>
+
+ 
+
+<!-- SCHEMA -->
+
+
+---
+## Exploring Motion Ambiguity and Alignment, le modèle
+
+L'alignement de la pyramide se fait d'un niveau au niveau inférieur.
+
+Au sommet, $\phi^{2}\_0$ et $\phi^{2}\_1$ sont alignés puis fusionnés
+
+$$\phi^2\_{0 \rightarrow 0.5} = \text{Align}(\phi^{2}\_0, \phi^{2}\_1)$$
+
+
+$$\tilde{\phi}^1\_{0 \rightarrow 0.5} = \text{Fuse}(\phi^{2 \uparrow 2}\_{0 \rightarrow 0.5}, \phi^{1}\_0)$$
+
+
+La prochaine étape aligne ce résultat et fusionne avec **tout** les features antérieurs.
+
+$$\phi^1\_{0 \rightarrow 0.5} = \text{Align}(\tilde{\phi}^{1}\_0, \phi^{1}\_1)$$
+
+$$\tilde{\phi}^0\_{0 \rightarrow 0.5} = \text{Fuse}(\phi^{2 \uparrow 4}\_{0 \rightarrow 0.5}, \phi^{1 \uparrow 2}\_{0 \rightarrow 0.5}, \phi^{0}\_0)$$
+
+Le feature final $\phi^0\_{0 \rightarrow 0.5}$
+
+$$\phi^0\_{0 \rightarrow 0.5} = \text{Align}(\tilde{\phi}^0\_{0 \rightarrow 0.5}, \phi^0\_{1} )$$
+
+Ce procédé est répété pour le calcul de ${\phi}^0\_{1 \rightarrow 0.5}$
+
+---
+
+## Exploring Motion Ambiguity and Alignment, le modèle
+
+Le module **CSF** implémente Fuse commune une concaténation suivi d'une convolution.
+
+Le module **AB** implémente Align en calculant un masque d'**offset** $O^l\_{k \rightarrow 0.5}$ et de **weight** $W^l\_{k \rightarrow 0.5}$.
+
+Le feature aligné est calculé par une convolution
+
+$$\phi^{l}\_{k \rightarrow 0.5}(x) = \sum\_i \tilde{\phi}^l\_{k \rightarrow 0.5} (x + O^l\_{k \rightarrow 0.5, i}(x)) * W^l\_{k \rightarrow 0.5, i}(x)$$
+
+$i$ indique l'$i$ème élément du champ réceptif de cette convolution.
+
+Le feature interpolé est calculé grâce à un masque d'attention.
+
+$$\phi\_{0.5} = M * \phi^0\_{0 \rightarrow 0.5} + (1 - M) \phi^0\_{1 \rightarrow 0.5}$$
+
+$$M = \sigma(\phi^0\_{0 \rightarrow 0.5} * \phi^0\_{1 \rightarrow 0.5})$$
+
+$\hat{I}\_{0.5}$ est ensuite reconstruite à partir de $\phi\_{0.5}$ par un module composé de blocs résiduels et d'une convolution.
+
+---
+## Exploring Motion Ambiguity and Alignment, le modèle
+
+<br>
+<br>
+<br>
+
+<p align = "center">
+    <img src="/figures/cspa/cspa2.jpg"  width="100%">
+</p>
+
+---
+
+
+## Exploring Motion Ambiguity and Alignment, entrainement
+
+Pour l'entrainement, on pénalise le modèle 
+- Sur la **reconstruction** de l'image $$\mathcal{L}\_1 = ||\hat{I}\_{0.5} - I\_{0.5}^{GT}||\_1$$
+- Sur la **cohérence des textures** de l'image interpolée comparée aux inputs. $\mathcal{L}_{TCL}$
+
+L'interpolation est alors formulée 
+
+$$\hat{I}\_{0.5} = \underset{I\_{0.5}}{\text{argmin}} \mathcal{L}\_1 (\hat{I}\_{0.5}, I\_{0.5}^{GT}) + \alpha\mathcal{L}\_{TCL}(\hat{I}\_{0.5} , I\_0, I\_1)$$
+
+---
+## Exploring Motion Ambiguity and Alignment, entrainement
+
+Comparer la texture d'$\hat{I}\_{0.5}$ avec celle de $I\_0$ et  $I\_1$ se fait part patches.
+
+Pour un patch $\hat{f}\_x$ centré en $x$, on recherche le patch $f^{t^\*}\_{y^\*}$ lui **correspondant** le plus.
+
+$$t^\*, y^\* =  \underset{t \in \\{0, 1\\}, y}{\text{argmin}} ||\hat{f}\_x - f^t\_y||\_2$$
+
+$t^\*$ et $y^\*$ indexe l'image et la position.
+
+On pénalise alors la reconstruction de ce patch
+
+$$\mathcal{L}\_{TCL}(\hat{I}\_{0.5},I\_0, I\_1) = ||\hat{f}\_x - f^{t^\*}\_{y^\*}||\_1$$$$
+
+
+---
+
+## Exploring Motion Ambiguity and Alignment, récapitulatif
+
+Quantitativement, cette solution est la plus performante sur les métriques classiques. Elle est cependant **nettement plus lente** que CAIN.
+
+<br>
+<br>
+<p align = "center">
+    <img src="/figures/cspa/cspa3.jpg"  width="100%">
+</p>
 
 
 
 ---
 
+## Exploring Motion Ambiguity and Alignment, récapitulatif
+
+<p align = "center">
+    <img src="/figures/cspa/cspa4.jpg"  width="100%">
+</p>
+
+
+
+---
+
+## Exploring Motion Ambiguity and Alignment, récapitulatif
+
+On note également que les structures répétitives évoluent de manière cohérente.
+
+<br>
+<p align = "center">
+    <img src="/figures/cspa/cspa5.jpg"  width="100%">
+</p>
+
+
+
+---
+
+
+
+
+
 ## Revue d'articles 
 - IFRNet: Intermediate Feature Refine Network for Efficient Frame Interpolation
-- Deep bayesian video frame interpolation
+- Deep Bayesian Video Frame Interpolation
 - Exploring Motion Ambiguity and Alignment for High-Quality Video Frame Interpolation
 - *Uncertainty-Guided Spatial Pruning Architecture for Efficient Frame Interpolation*
 - Clearer Frames, Anytime: Resolving Velocity Ambiguity in Video Frame Interpolation
 ---
 
-## Uncertainty Guided Spatial Pruning
+## Uncertainty Guided Spatial Pruning (Oct 2023)
+
+Part du principe que certaine zones ne requiert pas de calcul intensif dans les images. Propose de les ignorer avec un masque d'incertitude (NN), emploie les sparse convolution.
+
+Propose une architecture de VFI
+
 ---
 
 ## Revue d'articles 
 - IFRNet: Intermediate Feature Refine Network for Efficient Frame Interpolation
-- Deep bayesian video frame interpolation
+- Deep Bayesian Video Frame Interpolation
 - Exploring Motion Ambiguity and Alignment for High-Quality Video Frame Interpolation
 - Uncertainty-Guided Spatial Pruning Architecture for Efficient Frame Interpolation
 - *Clearer Frames, Anytime: Resolving Velocity Ambiguity in Video Frame Interpolation*
@@ -451,7 +598,7 @@ Qualitativement, les résultats sont satisfaisants, notamment au niveaux des str
 
 # References
 - Liste des articles
-    - *Yu, Zhiyang, & al. "Deep bayesian video frame interpolation." Oct 2022.*
+    - *Yu, Zhiyang, & al. "Deep Bayesian Video Frame Interpolation." Oct 2022.*
     - *Choi, Kim, & al. "Channel Attention Is All You Need for Video Frame Interpolation" 2020.*
     - *Zhou, Li, & al. "Exploring Motion Ambiguity and Alignment for High-Quality Video Frame Interpolation" Mar 2022*
     - *Kong, Jiang, & al. "IFRNet: Intermediate Feature Refine Network for Efficient Frame Interpolation" May 2022*
