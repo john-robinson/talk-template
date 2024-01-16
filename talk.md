@@ -151,7 +151,7 @@ Cette aproche utilise les flows de manière plus **holistique**.
 </p>
 
 ---
-## IFRNet, le modèle
+## IFRNet, la méthode
 
 L'encodeur construit une pyramide features.
 
@@ -170,7 +170,7 @@ Le dernier décodeur $\mathcal{D}^1$ calcule les flows ainsi que $M$ et $R$
 $$F\_{t \rightarrow 0}, F\_{t \rightarrow 1}, M, R = \mathcal{D}^1(F^{1}\_{t \rightarrow 0}, F^{1}\_{t \rightarrow 1}, \hat{\phi}^1\_t, \tilde{\phi}\_0^1, \tilde{\phi}\_1^1)$$
 
 ---
-## IFRNet, le modèle
+## IFRNet, la méthode
 
 L'output $\hat{I}\_t$ est ensuite calculée via un block **warp-merge-add**
 
@@ -302,7 +302,7 @@ L'interpolation est alors **itérative** s'apparant à une descente de **gradien
 
 ---
 
-## DBVFI, le modèle
+## DBVFI, la méthode
 
 Le modèle est **relaxé**, les paires d'images et de flows $I\_0, F\_{0 \rightarrow t}$ et $I\_1, F\_{1 \rightarrow t}$ sont indépendantes.
 $$P(I\_t | I\_0, I\_1, F\_{0 \rightarrow t}, F\_{1 \rightarrow t}) = \prod\_{i \in \\{0, 1\\}} P(I\_t | I\_i, F\_{i \rightarrow t})$$
@@ -316,7 +316,7 @@ Cette intégrale est **incalculable**, on accepte alors une approximation avec $
 $$P(I\_t | I\_i, F\_{i \rightarrow t}) \approx P(I\_t | I\_i, F\_{i \rightarrow t}, \Delta \hat{F}\_{i \rightarrow t}) P(\Delta F\_{i \rightarrow t} | I\_i, F\_{i \rightarrow t})$$
 
 ---
-## DBVFI, le modèle
+## DBVFI, la méthode
 
 Avec ces changements, prendre le **logarithme négatif** donne l'expression d'une loss 
 $$\mathcal{L} = -  \sum\_{i \in \\{0, 1\\}} \\left(\log P(I\_t | I\_i, F\_{i \rightarrow t} \\right)) + \log P(\Delta F\_{i \rightarrow t} | I\_i, F\_{i \rightarrow t})$$
@@ -332,7 +332,7 @@ Les modules Flow/Image Gradient estiment ces gradients.
 -  $\frac{\partial \mathcal{L}}{\partial \Delta \hat{F}\_{i \rightarrow t}}$ est formulé **implicitement** avec un réseau de neurones.
 
 ---
-## DBVFI, le modèle
+## DBVFI, la méthode
 
 Afin de réduire le nombre d'updates nécéssaire, la méthode proposée approche l'optimisation en estimant l'update à apporter avec **un réseau de neurones**
 
@@ -428,7 +428,7 @@ L'approche proposée se base également sur une décomposition des deux images e
 
 $$\phi^{\\{0, 1, 2\\}}\_0 \text{ et } \phi^{\\{0, 1, 2\\}}\_1 $$
 
-Ces features sont ensuite concatènés et alignés à travers leurs différents niveaux. **Cross Scale Pyramid Alignment**.
+Ces features sont ensuite concaténés et alignés à travers leurs différents niveaux. **Cross Scale Pyramid Alignment**.
 
 <p align = "center">
     <img src="/figures/cspa/cspa1.jpg"  width="100%">
@@ -440,7 +440,7 @@ Ces features sont ensuite concatènés et alignés à travers leurs différents 
 
 
 ---
-## Exploring Motion Ambiguity and Alignment, le modèle
+## Exploring Motion Ambiguity and Alignment, la méthode
 
 L'alignement de la pyramide se fait d'un niveau au niveau inférieur.
 
@@ -466,7 +466,7 @@ Ce procédé est répété pour le calcul de ${\phi}^0\_{1 \rightarrow 0.5}$
 
 ---
 
-## Exploring Motion Ambiguity and Alignment, le modèle
+## Exploring Motion Ambiguity and Alignment, la méthode
 
 Le module **CSF** implémente Fuse commune une concaténation suivi d'une convolution.
 
@@ -487,7 +487,7 @@ $$M = \sigma(\phi^0\_{0 \rightarrow 0.5} * \phi^0\_{1 \rightarrow 0.5})$$
 $\hat{I}\_{0.5}$ est ensuite reconstruite à partir de $\phi\_{0.5}$ par un module composé de blocs résiduels et d'une convolution.
 
 ---
-## Exploring Motion Ambiguity and Alignment, le modèle
+## Exploring Motion Ambiguity and Alignment, la méthode
 
 <br>
 <br>
@@ -565,10 +565,6 @@ On note également que les structures répétitives évoluent de manière cohér
 
 ---
 
-
-
-
-
 ## Revue d'articles 
 - IFRNet: Intermediate Feature Refine Network for Efficient Frame Interpolation
 - Deep Bayesian Video Frame Interpolation
@@ -579,9 +575,123 @@ On note également que les structures répétitives évoluent de manière cohér
 
 ## Uncertainty Guided Spatial Pruning (Oct 2023)
 
-Part du principe que certaine zones ne requiert pas de calcul intensif dans les images. Propose de les ignorer avec un masque d'incertitude (NN), emploie les sparse convolution.
+Lorsqu'on interpole deux images, l'essence est de concentrer le calcul sur les zones de mouvement.
 
-Propose une architecture de VFI
+Cet article présente une méthode permettant de **déterminer ces zones**, réduisant la complexité de nos modèles 
+<p align = "center">
+    <img src="/figures/pruning/pruning1.jpg"  width="40%">
+</p>
+
+
+
+<!-- Part du principe que certaine zones ne requiert pas de calcul intensif dans les images. Propose de les ignorer avec un masque d'incertitude (NN), emploie les sparse convolution.
+
+Propose une architecture de VFI -->
+
+---
+## Uncertainty Guided Spatial Pruning, la méthode
+
+La méthode proposée utilise deux réseaux de neurones
+- Un réseau **d'incertitude** (UEN), responsable d'estimer les zones de mouvement.
+- Un réseau **d'interpolation** (VFI), responsable de l'interpolation des images.
+
+L'architecture du VFI est très similaire à celle d'**IFRNet**.
+
+Les images sont encodées en pyramide 
+$$\phi^{\\{1, ..., 3\\}}\_{0, 1} = \mathcal{E}(I\_0, I\_1)$$
+
+Pour être ensuite décodées en **features** et **flows** sur plusieurs niveaux.
+
+$$F^{k-1}\_{t \rightarrow 0}, F^{k-1}\_{t \rightarrow 1}, \hat{\phi}^{k-1}\_{t} = \mathcal{D}^k(F^{k}\_{t \rightarrow 0}, F^{k}\_{t \rightarrow 1}, \hat{\phi}^k\_t, \tilde{\phi}\_0^k, \tilde{\phi}\_1^k)$$
+
+---
+## Uncertainty Guided Spatial Pruning, la méthode
+
+L'entrainement du VFI est similaire, on ne distille pas la connaissance des flows d'un réseau tiers.
+
+A chaque niveau, les décodeurs produisent additionnellement un **masque d'incertitude** $P\_k$ indiquant au décodeur $k-1$ les zones sur lesquelles convoluer.
+
+La génération de ces masques est supervisée par l'UEN.
+
+L'entrainement du modèle se fait alors en **deux parties**, premièrement l'entrainement de l'UEN puis du VFI.
+
+Ignorer les zones redondantes implique l'utilisation de **sparse convolution**
+
+- Durant l'**entrainement**, pour permettre la propagation des gradients, le résultat d'une convolution dense est masqué.
+- Durant l'**inférence**, la convolution est exécutée en n'appliquant le kernel que sur les zones spécifiées par le masque.
+
+---
+
+## Uncertainty Guided Spatial Pruning, entrainement
+
+
+L'UEN taché d'estimer la variance de l'image interpolée est pénalisé par 
+$$\mathcal{L}\_{su} = \exp(-U) ||I\_t - f(I\_0, I\_1)||\_1 + 2U$$
+
+Le VFI est lui pénalisé sur
+- La **reconstruction** de l'image $$\mathcal{L}\_{rec} = ||I\_t - I^{GT}\_t||\_1$$
+- Le degré **d'omission** controlé par $S\_t$ $$\mathcal{L}\_{s} = \left|\left | \frac{1}{\sum\_{k=1}^3 H\_k, W\_k} \left( \sum\_{k=1}^3 \sum\_{h=1}^{H\_k} \sum\_{w=1}^{W\_k} P\_{k,h,w} \right) - S\_t \right| \right|\_1$$
+- La **prédiction des masques** $$\mathcal{L}\_{ugm} = ||P\_k^{u\downarrow 2^{k+1}} - P\_{k + 1}||_1$$
+
+$P\_{k + 1}$ est le masque prédit par le VFI et $P\_k^{u\downarrow 2^{k+1}}$ et le masque estimé par l'UEN. 
+---
+
+## Uncertainty Guided Spatial Pruning, entrainement
+
+Additionellement, le VFI utilise une branche auxiliaire n'ometant aucune zone à chaque niveau qui output $I\_t^{sc}$ et $\hat{\phi}\_t^{sc, k}$.
+
+On peut alors pénaliser le modèle sur la reconstruction des features et images non masqués
+
+$$\mathcal{L}\_{sc} = ||I^{sc}\_t - I^{GT}\_t||\_1 + \sum\_{k = 1}^{3} \mathcal{L}\_{cen}(\hat{\phi}\_t^{sc, k}, \hat{\phi}\_t^{k})$$
+
+On entraine alors le VFI en optimisant
+
+$$\mathcal{L} = \mathcal{L}\_{rec} + \lambda\_{s}\mathcal{L}\_{s} +  \lambda\_{ugm}\mathcal{L}\_{ugm} +  \lambda\_{sc}\mathcal{L}\_{sc} $$
+
+---
+## Uncertainty Guided Spatial Pruning, recapitulatif
+
+L'hyper-paramètre $S\_t$ permet d'ajuster l'utilisation des resources.
+
+<br>
+
+<p align = "center">
+    <img src="/figures/pruning/usgp1.jpg"  width="100%">
+</p>
+
+
+
+---
+
+## Uncertainty Guided Spatial Pruning, recapitulatif
+
+<br>
+
+<p align = "center">
+    <img src="/figures/pruning/ugsp2.jpg"  width="100%">
+</p>
+
+---
+
+## Uncertainty Guided Spatial Pruning, recapitulatif
+
+Le modèle affiche de bons résulats et améliore l'efficacité.
+
+<br>
+<br>
+
+<p align = "center">
+    <img src="/figures/pruning/ugsp3.jpg"  width="100%">
+</p>
+
+---
+## Uncertainty Guided Spatial Pruning, recapitulatif
+
+<br>
+
+<p align = "center">
+    <img src="/figures/pruning/ugsp4.jpg"  width="100%">
+</p>
 
 ---
 
@@ -593,7 +703,16 @@ Propose une architecture de VFI
 - *Clearer Frames, Anytime: Resolving Velocity Ambiguity in Video Frame Interpolation*
 ---
 
-## Clearer Frames, Anytime
+## Clearer Frames, Anytime (Nov 2023)
+
+Developpe le concept d'ambiguité
+Propose le time indexing pour y remedier
+Developpement mathématique (input output, regression est une moyenne)
+Approche plug and play et résultats sur des modèles connus
+
+
+
+
 ---
 
 # References
