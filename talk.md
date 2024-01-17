@@ -705,6 +705,20 @@ Le modèle affiche de bons résulats et améliore l'efficacité.
 
 ## Clearer Frames, Anytime (Nov 2023)
 
+Cet article ne présente pas de modèle mais une solution envers l'ambiguité.
+
+
+<!-- Image -->
+
+L'ambiguité en régression est un problème qui surgit lorsque la distribution des images plausibles à une haute variance
+
+---
+
+L'interpolation est un problème de régression
+
+
+
+
 Developpe le concept d'ambiguité
 Propose le time indexing pour y remedier
 Developpement mathématique (input output, regression est une moyenne)
