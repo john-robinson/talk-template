@@ -30,7 +30,7 @@ class: section
 
 ## Le problème
 
-En se basant sur une série d'images $$\mathcal{I} = \\{I_{-k}, ... , I_0, I_1, ... I_k\\}$$
+En se basant sur une série d'images $$\mathcal{I} = \\{I\_{-(k-1)}, ... , I\_0, I\_1, ... I\_{k-1}\\}$$
 
 Construire un modèle $\mathcal{F}$ capable de générer une image intermédiaire.
 
@@ -39,7 +39,7 @@ $$I_t = \mathcal{F}(\mathcal{I}, t), \; \; 0 < t < 1$$
 <!-- SCHEMA -->
 
 
-$k$ paramétrise le modèle et le training set,
+$k$ paramétrise le modèle et le dataset,
 
 $$\mathcal{D} = \left\\{ \bigcup^{k}\_{l=1}I\_{i \pm l}, I\_i \right\\}^{N-k}\_{i=k}$$
 
@@ -52,54 +52,53 @@ $$\mathcal{D} = \left\\{ \bigcup^{k}\_{l=1}I\_{i \pm l}, I\_i \right\\}^{N-k}\_{
 Le **deep learning** nous permet d'approcher ce problème de **regression**.  
 
 ---
-## Regression "pure"
+
+## Le problème
+### **Regression "pure"**
 
 
-Le modele $\mathcal{F}$ tente de capturer la relation directe entre l'output $I_t$ et les images adjacentes dans le dataset
+Le modele $\mathcal{F}$ tente de capturer la relation directe entre l'output $I_t$ et les images adjacentes dans le dataset. Cette formulation force souvent $t = 0.5$
 
-<!-- 
-SCHEMA -->
-
-Cette formulation offre peu de flexibilité, $t = 0.5$
-
----
-## Optic Flow
-
+### **Optic Flow**
 On considère ici une étape intermédiare, celle de l'**optic flow**, qui caractérise le mouvement apparent de la scène.
-
-<!-- 
-SCHEMA -->
-
-La première étape consiste en l'estimation d'un certain nombre de d'optic flows, typiquement 2.
 
 $$\phi = \\{F\_{i \rightarrow t}\\}\_i^{K}$$
 où
 $$F\_{i \rightarrow t} \approx g(\mathcal{I}, t)$$
-
-
 Le modele $\mathcal{F}$ interpole donc en fonction des images et des flows.
 
 $$I_t = \mathcal{F}(\mathcal{I}, \phi)$$
 
-Cette approche permet d'être **arbitraire** quant a $t$. Cependant, approximer l'optic flow en ne se basant que sur les images reste **imprécis** (problème d'occlusion, etc...).
-
+Cette approche permet d'être **arbitraire** quant a $t$.
 
 
 ---
 ## Solution Actuelle, Modèle
 
 Le modele actuel execute une régression "pure" et se base sur CAIN .footnote[Channel Attention Is All You Need for Video Frame Interpolation, 2020]
-
+ 
 <p align = "center">
     <img src="/figures/CAIN/cain1.jpg"  width="90%">
     <img src="/figures/CAIN/cain2.jpg"  width="90%">
 </p>
 
+Le modèle est entrainé à reconstruire l'image $I\_{0.5}^{GT}$.
+
 
 ---
 ## Solution Actuelle, Challenges
 
-Difficultés avec les **paternes répétitifs** et les situations **d'ambiguïté**.
+Difficultés avec la **vitesse**
+<p align = "center">
+    <img src="/figures/observations/blur.jpg"  width="90%">
+</p>
+Et les paternes répétitifs
+<p align = "center">
+    <img src="/figures/observations/patterns.jpg"  width="90%">
+</p>
+
+
+
 
 <!-- Photos -->
 
@@ -153,19 +152,19 @@ Cette aproche utilise les flows de manière plus **holistique**.
 ---
 ## IFRNet, la méthode
 
-L'encodeur construit une pyramide features.
+L'encodeur construit une pyramide de features.
 
 $$\phi^{\\{1, ..., 4\\}}\_{0, 1} = \mathcal{E}(I\_0, I\_1)$$
 
-Le premier décodeur $\mathcal{D}^4$ produit les premiers flows et features interpolés.
+**Le premier décodeur** $\mathcal{D}^4$ produit les premiers flows et features interpolés.
 
 $$F^3\_{t \rightarrow 0}, F^3\_{t \rightarrow 1}, \hat{\phi}^3\_{t} = \mathcal{D}^4(\phi\_0^4, \phi\_1^4, T)$$
 
-Les décodeurs intermédiares $\mathcal{D}^k, k = 2, 3$ raffinent les flows et les features.
+**Les décodeurs intermédiares** $\mathcal{D}^k, k = 2, 3$ raffinent les flows et les features.
 
 $$F^{k-1}\_{t \rightarrow 0}, F^{k-1}\_{t \rightarrow 1}, \hat{\phi}^{k-1}\_{t} = \mathcal{D}^k(F^{k}\_{t \rightarrow 0}, F^{k}\_{t \rightarrow 1}, \hat{\phi}^k\_t, \tilde{\phi}\_0^k, \tilde{\phi}\_1^k)$$
 
-Le dernier décodeur $\mathcal{D}^1$ calcule les flows ainsi que $M$ et $R$
+**Le dernier décodeur** $\mathcal{D}^1$ calcule les flows ainsi que $M$ et $R$
 
 $$F\_{t \rightarrow 0}, F\_{t \rightarrow 1}, M, R = \mathcal{D}^1(F^{1}\_{t \rightarrow 0}, F^{1}\_{t \rightarrow 1}, \hat{\phi}^1\_t, \tilde{\phi}\_0^1, \tilde{\phi}\_1^1)$$
 
@@ -564,7 +563,7 @@ La méthode proposée utilise deux réseaux de neurones
 L'architecture du VFI est très similaire à celle d'**IFRNet**.
 
 Les images sont encodées en pyramide 
-$$\phi^{\\{1, ..., 3\\}}\_{0, 1} = \mathcal{E}(I\_0, I\_1)$$
+$$\phi^{\\{0, ..., 3\\}}\_{0, 1} = \mathcal{E}(I\_0, I\_1)$$
 
 Pour être ensuite décodées en **features** et **flows** sur plusieurs niveaux.
 
@@ -864,10 +863,10 @@ class: section
 
 - Considérer l'application de **méthodes directes** sur la solution actuelle
 
-- Garder la recherche en fil rouge
+- Recherche hebdomadaire
     - *Han, Xu, & al. "Video Frame Interpolation with Region-Distinguishable Priors from SAM" Dec 2023*
-    - *Danier, Zhang, Bull "LDMVFI: Video Frame Interpolation with Latent Diffusion Model" Dec 2023*
-    - *Zhang, Zhu, & al. "Extracting Motion and Appearance via Inter-Frame Attention for Efficient Video Frame Interpolation"*
+    - *Shi, Xu, & al. "Video Frame Interpolation Transformer"*
+    - *Zhang, Zhu, & al. "Extracting Motion and Appearance via Inter-Frame Attention for Efficient Video Frame Interpolation" Mar 2023*
     - ...
 ---
 
@@ -886,5 +885,4 @@ class: section
     - *Andrychowicz, Denil, & al. "Learning to learn by gradient descent by gradient descent" Nov 2016*
     - *Wang, Dong, & al. "Exploring Sparsity in Image Super-Resolution for Efficient Inference" Apr 2021*
     - *Xu, Siyao, & al. "Quadratic Video Interpolation" Nov 2019*
----
 
