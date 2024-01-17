@@ -81,7 +81,7 @@ Le modele $\mathcal{F}$ interpole donc en fonction des images et des flows.
 
 $$I_t = \mathcal{F}(\mathcal{I}, \phi)$$
 
-Cette approche permet une plus **grande flexibilité** quant a $t$. Cependant, approximer l'optic flow en ne se basant que sur les images reste **imprécis** (problème d'occlusion, etc...).
+Cette approche permet d'être **arbitraire** quant a $t$. Cependant, approximer l'optic flow en ne se basant que sur les images reste **imprécis** (problème d'occlusion, etc...).
 
 
 
@@ -260,15 +260,6 @@ $$\phi\_t^{\\{1, ..., 3\\}} = \mathcal{E}(I^{GT}\_t)$$
 </p>
 
 ---
-## IFRNet, récapitulatif
-
-Quantitativement, l'article présente 3 modèles, **IFRNet small**, **IFRNet** et **IFRNet large**, tous sont plus performants que CAIN.
-
-<p align = "center">
-    <img src="/figures/IFRNet/ifrnet4.jpg"  width="100%">
-</p>
-
----
 
 ## IFRNet, récapitulatif
 
@@ -383,18 +374,6 @@ Le réseau de neurones englobant $\mathcal{G}\_I$ et $\mathcal{G}\_F$ a cette st
 
 ---
 
-## DBVFI, récapitulatif
-
-Quantitativement, ce modèle performe mieux que de nombreux autres, y compris CAIN.
-<br>
-<br>
-<p align = "center">
-    <img src="/figures/DBVFI/dbvfi3.jpg"  width="100%">
-</p>
-
-
-
----
 
 ## DBVFI, récapitulatif
 
@@ -528,19 +507,6 @@ $$\mathcal{L}\_{TCL}(\hat{I}\_{0.5},I\_0, I\_1) = ||\hat{f}\_x - f^{t^\*}\_{y^\*
 
 ---
 
-## Exploring Motion Ambiguity and Alignment, récapitulatif
-
-Quantitativement, cette solution est la plus performante sur les métriques classiques. Elle est cependant **nettement plus lente** que CAIN.
-
-<br>
-<br>
-<p align = "center">
-    <img src="/figures/cspa/cspa3.jpg"  width="100%">
-</p>
-
-
-
----
 
 ## Exploring Motion Ambiguity and Alignment, récapitulatif
 
@@ -672,19 +638,6 @@ L'hyper-paramètre $S\_t$ permet d'ajuster l'utilisation des resources.
 </p>
 
 ---
-
-## Uncertainty Guided Spatial Pruning, recapitulatif
-
-Le modèle affiche de bons résulats et améliore l'efficacité.
-
-<br>
-<br>
-
-<p align = "center">
-    <img src="/figures/pruning/ugsp3.jpg"  width="100%">
-</p>
-
----
 ## Uncertainty Guided Spatial Pruning, recapitulatif
 
 <br>
@@ -705,28 +658,217 @@ Le modèle affiche de bons résulats et améliore l'efficacité.
 
 ## Clearer Frames, Anytime (Nov 2023)
 
-Cet article ne présente pas de modèle mais une solution envers l'ambiguité.
+Cet article ne présente pas de modèle mais une solution envers **l'ambiguité**.
 
 
-<!-- Image -->
+L'ambiguité en régression est un problème qui surgit lorsque la distribution des images plausibles à une **haute variance**
+$$I\_t^1, I\_t^2, ..., I\_t^n \sim \mathcal{F}(I\_0, I\_1, t)$$
+L'output de la régression $\hat{I}\_t$ est la moyenne de ces images
 
-L'ambiguité en régression est un problème qui surgit lorsque la distribution des images plausibles à une haute variance
+$$\hat{I}\_t = \mathbb{E}\_{I\_t \sim \mathcal{F}(I\_0, I\_1, t)}\\{I\_t\\}$$
+
+Résultant en des images floues, la méthode proposée réduit l'ensemble d'images plausibles en modifiant les inputs.
+
+<p align = "center">
+    <img src="/figures/ambiguity/ambiguity1.png"  width="100%">
+</p>
+
 
 ---
 
-L'interpolation est un problème de régression
+## Clearer Frames, Anytime, la méthode
+
+La première approche consiste à indexer l'interpolation par la **distance**, plutot que le **temps**, résolvant l'ambiguité liée à la vitesse.
+
+<p style="text-align: center;">$\mathcal{F}(I_0, I_1, D_t)$ plutot que $\mathcal{F}(I_0, I_1, t)$</p>
+
+
+Où $D\_t$ associe à chaque pixel un ratio de la distance parcourue entre $I\_0$, et $I\_1$
+
+- Durant l'**entrainement**, $D\_t$ est rigoureusement estimée en se basant sur l'optic flow
+
+- Durant l'**inférence**, il est suffisant de fournir une map uniforme
+
+$$D\_t(x, y) = t \;\; \forall x, y$$
+
+<p align = "center">
+    <img src="/figures/ambiguity/ambiguity2.png"  width="50%">
+</p>
 
 
 
 
-Developpe le concept d'ambiguité
-Propose le time indexing pour y remedier
-Developpement mathématique (input output, regression est une moyenne)
-Approche plug and play et résultats sur des modèles connus
+
+<!-- Ce type d'ambiguité est donc résolu durant l'entrainement, pour l'inférence, il est suffisant de fournir un indice. -->
+
+---
+## Clearer Frames, Anytime, la méthode
+
+L'article attaque l'ambiguité directionelle en proposant d'indexer l'interpolation avec une **frame de référence**.
+
+$$I\_t = \mathcal{F}(I\_0, I\_1, D\_t, I\_{ref}, D\_{ref})$$
+
+Par, exemple, en séparant l'estimation d'une frame en deux
+
+$$I\_{t/2} = \mathcal{F}(I\_0, I\_1, D\_t, I\_{0}, D\_{0})$$
+$$I\_{t} = \mathcal{F}(I\_0, I\_1, D\_t, I\_{t/2}, D\_{t/2})$$
+
+<p align = "center">
+    <img src="/figures/ambiguity/ambiguity3.png"  width="60%">
+</p>
+
+---
+## Clearer Frames, Anytime, entrainement
+
+Les stratégies d'indexation sont implémentées sur des modèles où $t$ est arbitraire.
+
+RIFE, **IFRNet**, AMT, EMA-VFI
+
+Utilise RAFT pour le calcul des distances durant l'entrainement
+<p align = "center">
+    <img src="/figures/ambiguity/ambiguity8.png"  width="100%">
+</p>
+
+
+---
+## Clearer Frames, Anytime, résultats
+
+<p align = "center">
+    <img src="/figures/ambiguity/ambiguity4.png"  width="100%">
+    <img src="/figures/ambiguity/ambiguity5.png"  width="100%">
+</p>
+
+
+---
+## Clearer Frames, Anytime, résultats
+
+<p align = "center">
+    <img src="/figures/ambiguity/ambiguity6.png"  width="100%">
+    <img src="/figures/ambiguity/ambiguity7.png"  width="100%">
+</p>
+
+
+---
+
+
+class: section
+# Que retenir de ces recherches ?
+---
+## Récapitulatif
+L'analyse des résultats **quantitatifs**.
+
+<style type="text/css">
+.tg  {border-collapse:collapse;border-spacing:0;}
+.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+  overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+.tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}
+</style>
+<table class="tg">
+<thead>
+  <tr>
+    <th class="tg-0pky">Model</th>
+    <th class="tg-0pky">Vimeo90K</th>
+    <th class="tg-0pky">Params (M)</th>
+    <th class="tg-0pky">FLOPs (T)</th>
+    <th class="tg-0pky">Runtime (s)</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="tg-0pky">CAIN</td>
+    <td class="tg-0pky"><span style="font-weight:bold;color:#CB0000">34.69/0.969</span></td>
+    <td class="tg-0pky"><span style="font-weight:bold;color:#CB0000">42.8</span></td>
+    <td class="tg-0pky"><span style="font-weight:bold;color:#CB0000">1.29</span></td>
+    <td class="tg-0pky">0.069</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">DBVFI</td>
+    <td class="tg-0pky">36.17/0.976</td>
+    <td class="tg-0pky">15.18</td>
+    <td class="tg-0pky">1.28</td>
+    <td class="tg-0pky">/</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">CSPA</td>
+    <td class="tg-0pky"><span style="font-weight:bold;color:#32CB00">36.76</span>/0.980</td>
+    <td class="tg-0pky">28.9</td>
+    <td class="tg-0pky">/</td>
+    <td class="tg-0pky"><span style="font-weight:bold;color:#CB0000">0.68</span></td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">IFRNet</td>
+    <td class="tg-0pky">35.80/0.9794</td>
+    <td class="tg-0pky">5</td>
+    <td class="tg-0pky">0.21</td>
+    <td class="tg-0pky">0.025</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">IFRNet small</td>
+    <td class="tg-0pky">35.59/0.9786</td>
+    <td class="tg-0pky">2.8</td>
+    <td class="tg-0pky">0.12</td>
+    <td class="tg-0pky"><span style="font-weight:bold;color:#32CB00">0.019</span></td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">IFRNet large</td>
+    <td class="tg-0pky">36.20/<span style="font-weight:bold;color:#32CB00">0.9808</span></td>
+    <td class="tg-0pky">19.7</td>
+    <td class="tg-0pky">0.79</td>
+    <td class="tg-0pky">0.079</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">UGSP</td>
+    <td class="tg-0pky">35.62/-</td>
+    <td class="tg-0pky">/</td>
+    <td class="tg-0pky">0.016</td>
+    <td class="tg-0pky"><span style="text-decoration:underline">0.46 (CPU)</span></td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">UGSP-distill</td>
+    <td class="tg-0pky">35.65/-</td>
+    <td class="tg-0pky">/</td>
+    <td class="tg-0pky"><span style="font-weight:bold;color:#32CB00">0.015</span></td>
+    <td class="tg-0pky"><span style="text-decoration:underline">0.43 (CPU)</span></td>
+  </tr>
+</tbody>
+</table>
+
+---
+
+## Récapitulatif
+- De nombreux articles utilisent le **flow**
+- Le state of the art a **bien évolué** depuis CAIN
+    - Les modèles présentés surpassent tous CAIN d'$\approx$ 1dB en PSNR et 0.10 SSIM.
+    - CAIN est de loin le modèle le plus **lourd**
+    - Certains articles présentent des solutions **plus rapide**
+
+- La recherche propose des solutions plus **directe**
+    - Utilisation de loss plus avancées préservant la texture locale (TCL, Census loss)
+    - L'utilisation de **l'incertitude** améliore la vitesse et contrôle les ressources
+    - L'indexation par distance et référence peut-être une solution pour le **flou**
+---
 
 
 
+class: section
+# Prochaine étape
+---
+## Prochaine étape
 
+- Expérimenter avec les implémentations disponibles
+    - https://github.com/ltkong218/IFRNet
+    - https://github.com/Oceanlib/DBVI
+    - https://github.com/zzh-tech/InterpAny-Clearer
+
+- Considérer l'application de **méthodes directes** sur la solution actuelle
+
+- Garder la recherche en fil rouge
+    - *Han, Xu, & al. "Video Frame Interpolation with Region-Distinguishable Priors from SAM" Dec 2023*
+    - *Danier, Zhang, Bull "LDMVFI: Video Frame Interpolation with Latent Diffusion Model" Dec 2023*
+    - *Zhang, Zhu, & al. "Extracting Motion and Appearance via Inter-Frame Attention for Efficient Video Frame Interpolation"*
+    - ...
 ---
 
 # References
@@ -739,5 +881,10 @@ Approche plug and play et résultats sur des modèles connus
     - *Zhong, Krishnan, & al. "Clearer Frames, Anytime: Resolving Velocity Ambiguity in Video Frame Interpolation" Nov 2023*
 ---
 - Autres références
+    - *Hinton, Vinyals, & al. "Distilling the Knowledge in a Neural Network" Mar 2015*
+    - *Adler, Ötkem "Solving ill-posed inverse problems using iterative deep neural networks" May 2017*
+    - *Andrychowicz, Denil, & al. "Learning to learn by gradient descent by gradient descent" Nov 2016*
+    - *Wang, Dong, & al. "Exploring Sparsity in Image Super-Resolution for Efficient Inference" Apr 2021*
+    - *Xu, Siyao, & al. "Quadratic Video Interpolation" Nov 2019*
 ---
 
